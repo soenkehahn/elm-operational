@@ -13,10 +13,6 @@ type. This is useful for being able test commands that apps perform using
 
 -}
 
-import Debug exposing (..)
-import Tuple exposing (..)
-import Platform.Cmd exposing (..)
-
 
 {-| `toCmd` can be used to turn components that are defined in terms of your own
 primitive commands into a proper elm component where `init` and `update` return
