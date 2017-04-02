@@ -7,6 +7,7 @@ import Tuple exposing (..)
 import Array exposing (..)
 import Platform.Cmd exposing (..)
 import Http exposing (..)
+import Platform exposing (program)
 
 
 type alias Model =
@@ -45,8 +46,8 @@ all =
             (\() ->
                 let
                     testableProgram :
-                        { init : ( Array String, List TestCmd )
-                        , update : Msg -> Array String -> ( Array String, List TestCmd )
+                        { init : ( Model, List TestCmd )
+                        , update : Msg -> Model -> ( Model, List TestCmd )
                         , somethingElse : ()
                         }
                     testableProgram =
@@ -64,12 +65,43 @@ all =
                         }
 
                     runnableProgram :
-                        { init : ( Array String, Cmd Msg )
-                        , update : Msg -> Array String -> ( Array String, Cmd Msg )
+                        { init : ( Model, Cmd Msg )
+                        , update : Msg -> Model -> ( Model, Cmd Msg )
                         , somethingElse : ()
                         }
                     runnableProgram =
                         toCmd runCmd testableProgram
+                in
+                    pass
+            )
+        , test "works in combination with Platform.program"
+            (\() ->
+                let
+                    testableProgram :
+                        { init : ( Model, List TestCmd )
+                        , update : Msg -> Model -> ( Model, List TestCmd )
+                        , subscriptions : Model -> Sub Msg
+                        }
+                    testableProgram =
+                        { init =
+                            ( empty, [ Get "/foo" ] )
+                        , update =
+                            \msg model ->
+                                case msg of
+                                    Error _ ->
+                                        ( model, [] )
+
+                                    Response s ->
+                                        ( push s model, [ Get s ] )
+                        , subscriptions = \_ -> Sub.none
+                        }
+
+                    runnableProgram =
+                        toCmd runCmd testableProgram
+
+                    main : Program Never Model Msg
+                    main =
+                        program runnableProgram
                 in
                     pass
             )
