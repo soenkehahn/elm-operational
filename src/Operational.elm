@@ -30,15 +30,15 @@ toCmd :
        }
 toCmd f program =
     let
-        convert ( a, primitives ) =
-            ( a
-            , Cmd.batch (List.map f primitives)
-            )
+        addUnitAsFlags p =
+            { p | init = \() -> p.init }
+
+        provideFlags flags p =
+            { p | init = p.init flags }
     in
-        { program
-            | init = convert program.init
-            , update = \msg model -> convert (program.update msg model)
-        }
+        addUnitAsFlags program
+            |> toCmdWithFlags f
+            |> provideFlags ()
 
 
 {-| Variant of `toCmd` that allows the usage of flags. See
