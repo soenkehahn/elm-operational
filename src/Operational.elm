@@ -7,6 +7,7 @@ type. This is useful for being able test commands that apps perform using
 # Converting to `Cmd`
 
 @docs toCmd
+@docs toCmdWithFlags
 
 # Convenience functions
 @docs (!!)
