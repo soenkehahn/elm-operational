@@ -9,27 +9,33 @@ import Platform.Cmd exposing (..)
 import Http exposing (..)
 
 
+type alias Model =
+    Array String
+
+
 type Msg
-    = FooResponse String
+    = Response String
     | Error Http.Error
 
 
-type TestPrimitive
+type TestCmd
     = Get String
 
 
-mkProgram { init, update } =
-    { init =
-        ( empty, init )
-    , update =
-        \msg model ->
-            case msg of
-                Error _ ->
-                    ( model, [] )
+runCmd : TestCmd -> Platform.Cmd.Cmd Msg
+runCmd p =
+    case p of
+        Get url ->
+            let
+                handleResponse result =
+                    case result of
+                        Ok x ->
+                            Response x
 
-                FooResponse s ->
-                    ( push s model, update s )
-    }
+                        Err err ->
+                            Error err
+            in
+                send handleResponse (getString url)
 
 
 all : Test
@@ -38,43 +44,32 @@ all =
         [ test "allows to turn commands into elm's Cmd"
             (\() ->
                 let
-                    p :
-                        { init : ( Array String, List TestPrimitive )
-                        , update : Msg -> Array String -> ( Array String, List TestPrimitive )
+                    testableProgram :
+                        { init : ( Array String, List TestCmd )
+                        , update : Msg -> Array String -> ( Array String, List TestCmd )
                         , somethingElse : ()
                         }
-                    p =
-                        let
-                            inner =
-                                mkProgram
-                                    { init = [ Get "/foo" ]
-                                    , update = \_ -> []
-                                    }
-                        in
-                            { init = inner.init, update = inner.update, somethingElse = () }
+                    testableProgram =
+                        { init =
+                            ( empty, [ Get "/foo" ] )
+                        , update =
+                            \msg model ->
+                                case msg of
+                                    Error _ ->
+                                        ( model, [] )
 
-                    convert : TestPrimitive -> Platform.Cmd.Cmd Msg
-                    convert p =
-                        case p of
-                            Get url ->
-                                let
-                                    handleResponse result =
-                                        case result of
-                                            Ok x ->
-                                                FooResponse x
+                                    Response s ->
+                                        ( push s model, [ Get s ] )
+                        , somethingElse = ()
+                        }
 
-                                            Err err ->
-                                                Error err
-                                in
-                                    send handleResponse (getString url)
-
-                    x :
+                    runnableProgram :
                         { init : ( Array String, Cmd Msg )
                         , update : Msg -> Array String -> ( Array String, Cmd Msg )
                         , somethingElse : ()
                         }
-                    x =
-                        toCmd convert p
+                    runnableProgram =
+                        toCmd runCmd testableProgram
                 in
                     pass
             )
